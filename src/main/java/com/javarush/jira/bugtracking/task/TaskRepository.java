@@ -3,10 +3,12 @@ package com.javarush.jira.bugtracking.task;
 import com.javarush.jira.common.BaseRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Transactional(readOnly = true)
 public interface TaskRepository extends BaseRepository<Task> {
@@ -37,4 +39,7 @@ public interface TaskRepository extends BaseRepository<Task> {
             WHERE id IN (SELECT child FROM task_with_subtasks)
             """, nativeQuery = true)
     void setTaskAndSubTasksSprint(long taskId, Long sprintId);
+
+    @Query("SELECT tags FROM Task WHERE id = :id")
+    Set<String> findTagsById(@Param(value = "id") Long id);
 }

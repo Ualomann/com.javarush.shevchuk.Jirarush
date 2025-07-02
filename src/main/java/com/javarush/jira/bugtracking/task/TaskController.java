@@ -19,10 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static com.javarush.jira.common.BaseHandler.createdResponse;
 
@@ -46,6 +43,8 @@ public class TaskController {
         log.info("get task by id={}", id);
         return taskService.get(id);
     }
+
+
 
     @GetMapping("/by-sprint")
     public List<TaskTo> getAllBySprint(@RequestParam long sprintId) {
@@ -93,9 +92,11 @@ public class TaskController {
         handler.enable(id, enabled);
     }
 
+
     @PatchMapping("/{id}/change-status")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changeTaskStatus(@PathVariable long id, @NotBlank @RequestParam String statusCode) {
+//        System.out.println("== PATCH /" + id + "/change-status вызван, новый статус: " + statusCode);
         log.info("change task(id={}) status to {}", id, statusCode);
         taskService.changeStatus(id, statusCode);
     }
@@ -155,5 +156,15 @@ public class TaskController {
         public TaskTreeNode(TaskTo taskTo) {
             this(taskTo, new LinkedList<>());
         }
+    }
+
+    @PutMapping("/{taskId}/tags/add")
+    public Set<String> addTags(@PathVariable long taskId, @RequestBody Set<String> tags) {
+        return taskService.appendTagsToTask(taskId, tags);
+    }
+
+    @GetMapping("/{taskId}/tags")
+    public Set<String> getTags(@PathVariable long taskId) {
+        return taskService.retrieveTags(taskId);
     }
 }

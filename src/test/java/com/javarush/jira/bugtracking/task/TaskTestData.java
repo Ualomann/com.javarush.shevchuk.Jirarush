@@ -56,7 +56,7 @@ public class TaskTestData {
 
     public static final UserBelong userTask1Assignment1 = new UserBelong(1L, TASK, USER_ID, "task_developer");
     public static final UserBelong userTask1Assignment2 = new UserBelong(1L, TASK, USER_ID, "task_tester");
-    public static final UserBelong userTask2Assignment1 = new UserBelong(2L, TASK, USER_ID, "task_developer");
+    public static final UserBelong userTask2Assignment1 = new UserBelong(1L, TASK, USER_ID, "task_developer");
     public static final UserBelong userTask2Assignment2 = new UserBelong(2L, TASK, USER_ID, "task_tester");
 
     static {

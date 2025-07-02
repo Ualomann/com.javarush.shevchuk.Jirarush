@@ -19,8 +19,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import static com.javarush.jira.bugtracking.ObjectType.TASK;
 import static com.javarush.jira.bugtracking.task.TaskUtil.fillExtraFields;
@@ -39,6 +43,8 @@ public class TaskService {
     private final SprintRepository sprintRepository;
     private final TaskExtMapper extMapper;
     private final UserBelongRepository userBelongRepository;
+    private final ActivityRepository activityRepository;
+
 
     @Transactional
     public void changeStatus(long taskId, String statusCode) {
@@ -53,6 +59,15 @@ public class TaskService {
             if (userType != null) {
                 handler.createUserBelong(taskId, TASK, AuthUser.authId(), userType);
             }
+            // ----------- Добавлено: вывод времени ----------- //
+
+            Duration dev = getDevelopmentDuration(task);
+            Duration test = getTestingDuration(task);
+            System.out.println("-".repeat(50));
+            System.out.println("Задача id=" + taskId + " [" + task.getTitle() + "]");
+            System.out.println("Время в работе: " + formatDuration(dev));
+            System.out.println("Время на тестировании: " + formatDuration(test));
+            System.out.println("-".repeat(50));
         }
     }
 
@@ -94,6 +109,8 @@ public class TaskService {
         taskToFull.setActivityTos(activityHandler.getMapper().toToList(activities));
         return taskToFull;
     }
+
+
 
     public TaskToExt getNewWithSprint(long sprintId) {
         Sprint sprint = sprintRepository.getExisted(sprintId);
@@ -140,4 +157,61 @@ public class TaskService {
             throw new DataConflictException(String.format(assign ? CANNOT_ASSIGN : CANNOT_UN_ASSIGN, userType, task.getStatusCode()));
         }
     }
+
+    // Метод получения времени сколько задача была в разработке, в тестиоовании и форматтер
+    public Duration getDevelopmentDuration(Task task) {
+        List<Activity> activities = activityRepository.findAllByTaskIdOrderByUpdatedDesc(task.getId());
+        LocalDateTime inProgress = null, readyForReview = null;
+        for (Activity a : activities) {
+            if ("ready_for_review".equals(a.getStatusCode()) && readyForReview == null) {
+                readyForReview = a.getUpdated();
+            }
+            if ("in_progress".equals(a.getStatusCode()) && inProgress == null) {
+                inProgress = a.getUpdated();
+            }
+        }
+        return (inProgress != null && readyForReview != null) ? Duration.between(inProgress, readyForReview) : null;
+    }
+
+    public Duration getTestingDuration(Task task) {
+        List<Activity> activities = activityRepository.findAllByTaskIdOrderByUpdatedDesc(task.getId());
+        LocalDateTime readyForReview = null, done = null;
+        for (Activity a : activities) {
+            if ("done".equals(a.getStatusCode()) && done == null) {
+                done = a.getUpdated();
+            }
+            if ("ready_for_review".equals(a.getStatusCode()) && readyForReview == null) {
+                readyForReview = a.getUpdated();
+            }
+        }
+        return (readyForReview != null && done != null) ? Duration.between(readyForReview, done) : null;
+    }
+
+    public static String formatDuration(Duration duration) {
+        if (duration == null) return "нет данных";
+        long seconds = duration.getSeconds();
+        long absSeconds = Math.abs(seconds);
+        return String.format("%02d:%02d:%02d",
+                absSeconds / 3600,
+                (absSeconds % 3600) / 60,
+                absSeconds % 60);
+    }
+
+    @Transactional
+    public Set<String> appendTagsToTask(long taskId, Set<String> incomingTags) {
+        Task task = handler.getRepository().findById(taskId)
+                .orElseThrow(() -> new NotFoundException("Task not found"));
+        incomingTags.stream()
+                .filter(tag -> tag != null && !tag.trim().isEmpty())
+                .forEach(tag -> task.getTags().add(tag.trim()));
+        handler.getRepository().save(task);
+        return new HashSet<>(task.getTags());
+    }
+
+    public Set<String> retrieveTags(long taskId) {
+        return handler.getRepository().findTagsById(taskId);
+    }
+
+
+
 }

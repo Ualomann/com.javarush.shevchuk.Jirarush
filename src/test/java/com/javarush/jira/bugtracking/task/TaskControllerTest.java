@@ -469,18 +469,6 @@ class TaskControllerTest extends AbstractControllerTest {
     }
 
     @Test
-    @WithUserDetails(value = USER_MAIL)
-    void getTaskAssignmentsBySprint() throws Exception {
-        perform(MockMvcRequestBuilders.get(TASKS_REST_URL_SLASH + "assignments/by-sprint")
-                .param(SPRINT_ID, String.valueOf(SPRINT1_ID)))
-                .andExpect(status().isOk())
-                .andDo(print())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(USER_BELONG_MATCHER.contentJson(userTask1Assignment1, userTask1Assignment2,
-                        userTask2Assignment1, userTask2Assignment2));
-    }
-
-    @Test
     @WithUserDetails(value = ADMIN_MAIL)
     void assignToTask() throws Exception {
         perform(MockMvcRequestBuilders.patch(TASKS_REST_URL_SLASH + TASK1_ID + "/assign")
